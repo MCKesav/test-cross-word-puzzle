@@ -1,0 +1,20 @@
+{
+  "name": "crossword-generator-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "dependencies": {
+    "bytez.js": "^3.0.0",
+    "cors": "^2.8.5",
+    "crossword-layout-generator": "*",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
