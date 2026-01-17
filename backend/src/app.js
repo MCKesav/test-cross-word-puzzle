@@ -31,9 +31,12 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`🧩 Crossword Generator API running on http://localhost:${PORT}`);
-    console.log(`   Cache: ${process.env.CACHE_ENABLED === 'true' ? 'enabled' : 'disabled'}`);
-});
+// Start server only if not running in Vercel (serverless)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`🧩 Crossword Generator API running on http://localhost:${PORT}`);
+        console.log(`   Cache: ${process.env.CACHE_ENABLED === 'true' ? 'enabled' : 'disabled'}`);
+    });
+}
 
 export default app;
