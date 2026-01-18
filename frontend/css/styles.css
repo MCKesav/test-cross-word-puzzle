@@ -218,17 +218,18 @@ body {
 
 .puzzle-container {
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(360px, 1fr);
-  gap: 2rem;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
   align-items: start;
-  min-height: 400px;
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 200px);
+  overflow: hidden;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 800px) {
   .puzzle-container {
     grid-template-columns: 1fr;
     max-height: none;
+    overflow: visible;
   }
 }
 
@@ -246,34 +247,33 @@ body {
 
 /* Crossword Grid - Strict Geometry */
 .crossword-grid {
-  --cell-size: 36px;
+  --cell-size: 28px;
   display: grid;
-  /* grid-template-columns set dynamically via JS style attribute */
-  gap: 2px;
+  gap: 1px;
   background: var(--border);
-  padding: 2px;
+  padding: 1px;
   border-radius: 0.5rem;
   width: fit-content;
   height: fit-content;
   box-sizing: content-box;
-  /* Prevent any overflow or overlap */
   overflow: visible;
   position: relative;
+  flex-shrink: 0;
 }
 
 /* Individual Grid Cell - Fixed Size, No Overlap */
 .grid-cell {
-  width: var(--cell-size, 36px);
-  height: var(--cell-size, 36px);
-  min-width: var(--cell-size, 36px);
-  min-height: var(--cell-size, 36px);
-  max-width: var(--cell-size, 36px);
-  max-height: var(--cell-size, 36px);
+  width: var(--cell-size, 28px);
+  height: var(--cell-size, 28px);
+  min-width: var(--cell-size, 28px);
+  min-height: var(--cell-size, 28px);
+  max-width: var(--cell-size, 28px);
+  max-height: var(--cell-size, 28px);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.85rem;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
