@@ -335,28 +335,44 @@ function generateCrosswordLayout(entries) {
     // Sort by length (longer words first for better placement)
     const sortedEntries = [...entries].sort((a, b) => b.answer.length - a.answer.length);
 
-    const crossword = new CrosswordGrid(25);
-    let wordNumber = 1;
+    // Use smaller grid size for compactness
+    const crossword = new CrosswordGrid(20);
 
-    // Place first word in center
+    // Place first word near top-left for compact result
     const firstWord = sortedEntries[0];
-    const startCol = Math.floor((crossword.size - firstWord.answer.length) / 2);
-    const startRow = Math.floor(crossword.size / 2);
-    crossword.place(firstWord.answer, startRow, startCol, 'across', firstWord.clue, wordNumber++);
+    const startRow = 2; // Start near top
+    const startCol = 2; // Start near left
+    crossword.place(firstWord.answer, startRow, startCol, 'across', firstWord.clue, 1);
 
-    // Try to place remaining words
-    for (let i = 1; i < sortedEntries.length; i++) {
-        const entry = sortedEntries[i];
-        const intersections = crossword.findIntersections(entry.answer);
+    // Try to place remaining words with preference for compact placement
+    let placedCount = 1;
+    const maxAttempts = 3;
 
-        if (intersections.length > 0) {
-            // Pick best intersection (prefer ones closer to center)
-            const best = intersections[0];
-            crossword.place(entry.answer, best.row, best.col, best.direction, entry.clue, wordNumber++);
-        } else {
-            // Can't place this word with intersection, try placing separately
-            // (Skip to keep puzzle connected)
-            console.log('⚠️ Could not place word:', entry.answer);
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        for (let i = 1; i < sortedEntries.length; i++) {
+            const entry = sortedEntries[i];
+
+            // Check if already placed
+            if (crossword.placedWords.some(w => w.answer === entry.answer)) continue;
+
+            const intersections = crossword.findIntersections(entry.answer);
+
+            if (intersections.length > 0) {
+                // Score intersections - prefer ones that keep grid compact
+                const bounds = crossword.getBounds();
+                const centerRow = (bounds.minRow + bounds.maxRow) / 2;
+                const centerCol = (bounds.minCol + bounds.maxCol) / 2;
+
+                // Sort by distance from current center (closer is better)
+                intersections.sort((a, b) => {
+                    const distA = Math.abs(a.row - centerRow) + Math.abs(a.col - centerCol);
+                    const distB = Math.abs(b.row - centerRow) + Math.abs(b.col - centerCol);
+                    return distA - distB;
+                });
+
+                const best = intersections[0];
+                crossword.place(entry.answer, best.row, best.col, best.direction, entry.clue, ++placedCount);
+            }
         }
     }
 
@@ -364,6 +380,7 @@ function generateCrosswordLayout(entries) {
         throw new Error('Could not place enough words in crossword');
     }
 
+    console.log(`✅ Placed ${crossword.placedWords.length} words`);
     return crossword.toOutput();
 }
 
