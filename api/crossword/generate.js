@@ -267,54 +267,55 @@ class CrosswordGrid {
             grid.push(row);
         }
 
-        // Assign numbers and separate clues
+        // Create a map of word start positions
+        const wordStarts = new Map(); // key: "row-col" -> { across: wordInfo, down: wordInfo }
+
+        for (const word of this.placedWords) {
+            const key = `${word.row}-${word.col}`;
+            if (!wordStarts.has(key)) {
+                wordStarts.set(key, {});
+            }
+            wordStarts.get(key)[word.direction] = word;
+        }
+
+        // Assign numbers in reading order (top-to-bottom, left-to-right)
         const across = [];
         const down = [];
         let number = 1;
-        const numberMap = {};
+        const numberMap = new Map();
 
         for (let r = bounds.minRow; r <= bounds.maxRow; r++) {
             for (let c = bounds.minCol; c <= bounds.maxCol; c++) {
-                if (this.grid[r][c] === null) continue;
-
                 const key = `${r}-${c}`;
-                let needsNumber = false;
+                const starts = wordStarts.get(key);
 
-                // Check if this is start of across word
-                const isAcrossStart = (c === bounds.minCol || this.grid[r][c - 1] === null) &&
-                    (c < bounds.maxCol && this.grid[r][c + 1] !== null);
+                if (starts) {
+                    // This cell starts at least one word
+                    const cellNumber = number++;
+                    numberMap.set(key, cellNumber);
 
-                // Check if this is start of down word
-                const isDownStart = (r === bounds.minRow || this.grid[r - 1][c] === null) &&
-                    (r < bounds.maxRow && this.grid[r + 1][c] !== null);
+                    // Add across clue if exists
+                    if (starts.across) {
+                        across.push({
+                            number: cellNumber,
+                            clue: starts.across.clue,
+                            answer: starts.across.answer,
+                            x: c - bounds.minCol + 1,
+                            y: r - bounds.minRow + 1
+                        });
+                    }
 
-                if (isAcrossStart || isDownStart) {
-                    if (!numberMap[key]) {
-                        numberMap[key] = number++;
+                    // Add down clue if exists
+                    if (starts.down) {
+                        down.push({
+                            number: cellNumber,
+                            clue: starts.down.clue,
+                            answer: starts.down.answer,
+                            x: c - bounds.minCol + 1,
+                            y: r - bounds.minRow + 1
+                        });
                     }
                 }
-            }
-        }
-
-        // Build clue lists
-        for (const word of this.placedWords) {
-            const key = `${word.row}-${word.col}`;
-            const num = numberMap[key];
-
-            if (!num) continue;
-
-            const clueObj = {
-                number: num,
-                clue: word.clue,
-                answer: word.answer,
-                x: word.col - bounds.minCol + 1,
-                y: word.row - bounds.minRow + 1
-            };
-
-            if (word.direction === 'across') {
-                across.push(clueObj);
-            } else {
-                down.push(clueObj);
             }
         }
 
