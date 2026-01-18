@@ -1,5 +1,5 @@
 // Native Vercel Serverless Function for /api/crossword/generate
-// This format is guaranteed to work on Vercel
+// With proper crossword layout algorithm and validation
 
 // Bytez SDK - lazy loaded
 let bytezModel = null;
@@ -56,7 +56,7 @@ Format:
 
     if (error) {
         console.error('Bytez API error:', error);
-        throw new Error(`AI service error`);
+        throw new Error('AI service error');
     }
 
     // Extract text from response
@@ -86,94 +86,288 @@ Format:
         throw new Error('AI returned invalid format');
     }
 
-    const entries = JSON.parse(jsonMatch[0]);
+    let entries;
+    try {
+        entries = JSON.parse(jsonMatch[0]);
+    } catch (e) {
+        throw new Error('AI returned malformed JSON');
+    }
+
     if (!Array.isArray(entries)) {
         throw new Error('AI response is not an array');
     }
 
     // Validate entries
     const validEntries = entries
-        .filter(e => e?.a && e?.c)
+        .filter(e => e?.a && e?.c && typeof e.a === 'string' && typeof e.c === 'string')
         .map(e => ({
-            a: e.a.toUpperCase().replace(/[^A-Z]/g, ''),
-            c: e.c.substring(0, 100)
+            answer: e.a.toUpperCase().replace(/[^A-Z]/g, ''),
+            clue: e.c.substring(0, 100)
         }))
-        .filter(e => e.a.length >= config.wordLengthMin && e.a.length <= config.wordLengthMax);
+        .filter(e => e.answer.length >= config.wordLengthMin && e.answer.length <= config.wordLengthMax);
 
-    console.log('✅ Valid entries:', validEntries.length);
-    return validEntries;
-}
-
-// Simple grid generation
-function generateLayout(entries) {
-    const words = entries.map((e, i) => ({
-        answer: e.a,
-        clue: e.c,
-        startx: 1,
-        starty: i + 1,
-        orientation: i % 2 === 0 ? 'across' : 'down',
-        position: i + 1
-    }));
-
-    let maxX = 1, maxY = 1;
-    words.forEach((w) => {
-        if (w.orientation === 'across') {
-            maxX = Math.max(maxX, w.startx + w.answer.length);
-            maxY = Math.max(maxY, w.starty + 1);
-        } else {
-            maxX = Math.max(maxX, w.startx + 1);
-            maxY = Math.max(maxY, w.starty + w.answer.length);
-        }
+    // Remove duplicates
+    const seen = new Set();
+    const uniqueEntries = validEntries.filter(e => {
+        if (seen.has(e.answer)) return false;
+        seen.add(e.answer);
+        return true;
     });
 
-    const grid = [];
-    for (let y = 0; y < maxY; y++) {
-        const row = [];
-        for (let x = 0; x < maxX; x++) {
-            row.push('-');
-        }
-        grid.push(row);
+    console.log('✅ Valid unique entries:', uniqueEntries.length);
+    return uniqueEntries;
+}
+
+// ========== PROPER CROSSWORD LAYOUT ALGORITHM ==========
+
+class CrosswordGrid {
+    constructor(size = 20) {
+        this.size = size;
+        this.grid = Array(size).fill(null).map(() => Array(size).fill(null));
+        this.placedWords = [];
     }
 
-    words.forEach(w => {
-        for (let i = 0; i < w.answer.length; i++) {
-            if (w.orientation === 'across') {
-                grid[w.starty - 1][w.startx - 1 + i] = w.answer[i];
-            } else {
-                grid[w.starty - 1 + i][w.startx - 1] = w.answer[i];
+    canPlace(word, row, col, direction) {
+        const len = word.length;
+
+        // Check bounds
+        if (direction === 'across') {
+            if (col + len > this.size) return false;
+        } else {
+            if (row + len > this.size) return false;
+        }
+
+        // Check each cell
+        for (let i = 0; i < len; i++) {
+            const r = direction === 'across' ? row : row + i;
+            const c = direction === 'across' ? col + i : col;
+            const cell = this.grid[r][c];
+
+            if (cell !== null && cell !== word[i]) {
+                return false; // Conflict
             }
         }
-    });
 
-    return { grid, words, width: maxX, height: maxY };
+        // Check adjacent cells (no parallel words touching)
+        for (let i = 0; i < len; i++) {
+            const r = direction === 'across' ? row : row + i;
+            const c = direction === 'across' ? col + i : col;
+
+            // If this cell is empty, check that we're not creating invalid adjacency
+            if (this.grid[r][c] === null) {
+                if (direction === 'across') {
+                    // Check above and below
+                    if (row > 0 && this.grid[r - 1][c] !== null) {
+                        // Only allow if it's an intersection point
+                        if (i > 0 && this.grid[r][c - 1] === null) return false;
+                    }
+                    if (row < this.size - 1 && this.grid[r + 1][c] !== null) {
+                        if (i > 0 && this.grid[r][c - 1] === null) return false;
+                    }
+                } else {
+                    // Check left and right
+                    if (col > 0 && this.grid[r][c - 1] !== null) {
+                        if (i > 0 && this.grid[r - 1][c] === null) return false;
+                    }
+                    if (col < this.size - 1 && this.grid[r][c + 1] !== null) {
+                        if (i > 0 && this.grid[r - 1][c] === null) return false;
+                    }
+                }
+            }
+        }
+
+        // Check before and after the word
+        if (direction === 'across') {
+            if (col > 0 && this.grid[row][col - 1] !== null) return false;
+            if (col + len < this.size && this.grid[row][col + len] !== null) return false;
+        } else {
+            if (row > 0 && this.grid[row - 1][col] !== null) return false;
+            if (row + len < this.size && this.grid[row + len][col] !== null) return false;
+        }
+
+        return true;
+    }
+
+    place(word, row, col, direction, clue, number) {
+        for (let i = 0; i < word.length; i++) {
+            const r = direction === 'across' ? row : row + i;
+            const c = direction === 'across' ? col + i : col;
+            this.grid[r][c] = word[i];
+        }
+
+        this.placedWords.push({
+            answer: word,
+            clue: clue,
+            row: row,
+            col: col,
+            direction: direction,
+            number: number
+        });
+    }
+
+    findIntersections(word) {
+        const intersections = [];
+
+        for (const placed of this.placedWords) {
+            for (let i = 0; i < word.length; i++) {
+                for (let j = 0; j < placed.answer.length; j++) {
+                    if (word[i] === placed.answer[j]) {
+                        // Found matching letter
+                        const newDirection = placed.direction === 'across' ? 'down' : 'across';
+
+                        let newRow, newCol;
+                        if (placed.direction === 'across') {
+                            newRow = placed.row - i;
+                            newCol = placed.col + j;
+                        } else {
+                            newRow = placed.row + j;
+                            newCol = placed.col - i;
+                        }
+
+                        if (newRow >= 0 && newCol >= 0 && this.canPlace(word, newRow, newCol, newDirection)) {
+                            intersections.push({ row: newRow, col: newCol, direction: newDirection });
+                        }
+                    }
+                }
+            }
+        }
+
+        return intersections;
+    }
+
+    getBounds() {
+        let minRow = this.size, maxRow = 0, minCol = this.size, maxCol = 0;
+
+        for (let r = 0; r < this.size; r++) {
+            for (let c = 0; c < this.size; c++) {
+                if (this.grid[r][c] !== null) {
+                    minRow = Math.min(minRow, r);
+                    maxRow = Math.max(maxRow, r);
+                    minCol = Math.min(minCol, c);
+                    maxCol = Math.max(maxCol, c);
+                }
+            }
+        }
+
+        return { minRow, maxRow, minCol, maxCol };
+    }
+
+    toOutput() {
+        const bounds = this.getBounds();
+        const width = bounds.maxCol - bounds.minCol + 1;
+        const height = bounds.maxRow - bounds.minRow + 1;
+
+        // Create normalized grid
+        const grid = [];
+        for (let r = bounds.minRow; r <= bounds.maxRow; r++) {
+            const row = [];
+            for (let c = bounds.minCol; c <= bounds.maxCol; c++) {
+                row.push(this.grid[r][c] || '-');
+            }
+            grid.push(row);
+        }
+
+        // Assign numbers and separate clues
+        const across = [];
+        const down = [];
+        let number = 1;
+        const numberMap = {};
+
+        for (let r = bounds.minRow; r <= bounds.maxRow; r++) {
+            for (let c = bounds.minCol; c <= bounds.maxCol; c++) {
+                if (this.grid[r][c] === null) continue;
+
+                const key = `${r}-${c}`;
+                let needsNumber = false;
+
+                // Check if this is start of across word
+                const isAcrossStart = (c === bounds.minCol || this.grid[r][c - 1] === null) &&
+                    (c < bounds.maxCol && this.grid[r][c + 1] !== null);
+
+                // Check if this is start of down word
+                const isDownStart = (r === bounds.minRow || this.grid[r - 1][c] === null) &&
+                    (r < bounds.maxRow && this.grid[r + 1][c] !== null);
+
+                if (isAcrossStart || isDownStart) {
+                    if (!numberMap[key]) {
+                        numberMap[key] = number++;
+                    }
+                }
+            }
+        }
+
+        // Build clue lists
+        for (const word of this.placedWords) {
+            const key = `${word.row}-${word.col}`;
+            const num = numberMap[key];
+
+            if (!num) continue;
+
+            const clueObj = {
+                number: num,
+                clue: word.clue,
+                answer: word.answer,
+                x: word.col - bounds.minCol + 1,
+                y: word.row - bounds.minRow + 1
+            };
+
+            if (word.direction === 'across') {
+                across.push(clueObj);
+            } else {
+                down.push(clueObj);
+            }
+        }
+
+        // Sort by number
+        across.sort((a, b) => a.number - b.number);
+        down.sort((a, b) => a.number - b.number);
+
+        return { grid, width, height, across, down };
+    }
 }
 
-function toCrosswordJsFormat(layout, topic) {
-    const across = layout.words.filter(w => w.orientation === 'across').map((w, i) => ({
-        number: i + 1,
-        clue: w.clue,
-        answer: w.answer,
-        x: w.startx,
-        y: w.starty
-    }));
+function generateCrosswordLayout(entries) {
+    if (!entries || entries.length < 2) {
+        throw new Error('Not enough words to generate crossword');
+    }
 
-    const down = layout.words.filter(w => w.orientation === 'down').map((w, i) => ({
-        number: across.length + i + 1,
-        clue: w.clue,
-        answer: w.answer,
-        x: w.startx,
-        y: w.starty
-    }));
+    // Sort by length (longer words first for better placement)
+    const sortedEntries = [...entries].sort((a, b) => b.answer.length - a.answer.length);
 
-    return {
-        meta: { title: `${topic.charAt(0).toUpperCase() + topic.slice(1)} Crossword` },
-        dimensions: { width: layout.width, height: layout.height },
-        grid: layout.grid,
-        clues: { across, down }
-    };
+    const crossword = new CrosswordGrid(25);
+    let wordNumber = 1;
+
+    // Place first word in center
+    const firstWord = sortedEntries[0];
+    const startCol = Math.floor((crossword.size - firstWord.answer.length) / 2);
+    const startRow = Math.floor(crossword.size / 2);
+    crossword.place(firstWord.answer, startRow, startCol, 'across', firstWord.clue, wordNumber++);
+
+    // Try to place remaining words
+    for (let i = 1; i < sortedEntries.length; i++) {
+        const entry = sortedEntries[i];
+        const intersections = crossword.findIntersections(entry.answer);
+
+        if (intersections.length > 0) {
+            // Pick best intersection (prefer ones closer to center)
+            const best = intersections[0];
+            crossword.place(entry.answer, best.row, best.col, best.direction, entry.clue, wordNumber++);
+        } else {
+            // Can't place this word with intersection, try placing separately
+            // (Skip to keep puzzle connected)
+            console.log('⚠️ Could not place word:', entry.answer);
+        }
+    }
+
+    if (crossword.placedWords.length < 3) {
+        throw new Error('Could not place enough words in crossword');
+    }
+
+    return crossword.toOutput();
 }
 
-// Main handler - Vercel native format
+// ========== MAIN HANDLER ==========
+
 export default async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -223,26 +417,44 @@ export default async function handler(req, res) {
         const normalizedTopic = topic.trim().substring(0, 50);
         console.log('🎯 Generating:', { topic: normalizedTopic, difficulty: normalizedDifficulty });
 
+        // Generate words from AI
         const entries = await generateCluesAndAnswers(
             normalizedTopic,
-            Math.min(Math.max(wordCount, 5), 10), // Keep small for speed
+            Math.min(Math.max(wordCount, 5), 12),
             normalizedDifficulty
         );
 
         if (!entries || entries.length < 3) {
             return res.status(200).json({
                 ok: false,
-                error: { code: 'INSUFFICIENT_WORDS', message: 'Could not generate enough words' }
+                error: { code: 'INSUFFICIENT_WORDS', message: 'Could not generate enough valid words' }
             });
         }
 
-        const layout = generateLayout(entries);
-        const puzzle = toCrosswordJsFormat(layout, normalizedTopic);
+        // Generate crossword layout with proper algorithm
+        const layout = generateCrosswordLayout(entries);
+
+        // Validate output
+        if (!layout.grid || !layout.across || !layout.down) {
+            throw new Error('Invalid crossword layout generated');
+        }
+
+        if (layout.across.length === 0 && layout.down.length === 0) {
+            throw new Error('No clues generated');
+        }
+
+        // Build response
+        const puzzle = {
+            meta: { title: `${normalizedTopic.charAt(0).toUpperCase() + normalizedTopic.slice(1)} Crossword` },
+            dimensions: { width: layout.width, height: layout.height },
+            grid: layout.grid,
+            clues: { across: layout.across, down: layout.down }
+        };
 
         const limits = HINT_LIMITS[normalizedDifficulty];
         puzzle.difficulty = { level: normalizedDifficulty, hintLimits: { ...limits } };
 
-        console.log('✅ Puzzle generated successfully');
+        console.log('✅ Puzzle generated:', layout.across.length, 'across,', layout.down.length, 'down');
 
         return res.status(200).json({
             ok: true,
