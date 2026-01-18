@@ -435,10 +435,11 @@ export default async function handler(req, res) {
         const normalizedTopic = topic.trim().substring(0, 50);
         console.log('🎯 Generating:', { topic: normalizedTopic, difficulty: normalizedDifficulty });
 
-        // Generate words from AI
+        // Generate words from AI - request extra to account for filtering
+        const requestedCount = Math.min(Math.max(wordCount, 5), 15);
         const entries = await generateCluesAndAnswers(
             normalizedTopic,
-            Math.min(Math.max(wordCount, 5), 12),
+            requestedCount + 3, // Request 3 extra to account for filtering
             normalizedDifficulty
         );
 
