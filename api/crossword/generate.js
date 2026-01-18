@@ -335,43 +335,86 @@ function generateCrosswordLayout(entries) {
     // Sort by length (longer words first for better placement)
     const sortedEntries = [...entries].sort((a, b) => b.answer.length - a.answer.length);
 
-    // Use smaller grid size for compactness
-    const crossword = new CrosswordGrid(20);
+    // Use larger grid to accommodate more words
+    const crossword = new CrosswordGrid(30);
 
-    // Place first word near top-left for compact result
+    // Place first word horizontally in center-top area
     const firstWord = sortedEntries[0];
-    const startRow = 2; // Start near top
-    const startCol = 2; // Start near left
+    const startRow = 5;
+    const startCol = 3;
     crossword.place(firstWord.answer, startRow, startCol, 'across', firstWord.clue, 1);
 
-    // Try to place remaining words with preference for compact placement
+    // Track unplaced words for retry
+    let unplaced = [];
     let placedCount = 1;
-    const maxAttempts = 3;
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        for (let i = 1; i < sortedEntries.length; i++) {
-            const entry = sortedEntries[i];
+    // First pass: try to place with intersections
+    for (let i = 1; i < sortedEntries.length; i++) {
+        const entry = sortedEntries[i];
+        const intersections = crossword.findIntersections(entry.answer);
 
-            // Check if already placed
-            if (crossword.placedWords.some(w => w.answer === entry.answer)) continue;
+        if (intersections.length > 0) {
+            // Score by distance from center for compact grid
+            const bounds = crossword.getBounds();
+            const centerRow = (bounds.minRow + bounds.maxRow) / 2;
+            const centerCol = (bounds.minCol + bounds.maxCol) / 2;
 
-            const intersections = crossword.findIntersections(entry.answer);
+            intersections.sort((a, b) => {
+                const distA = Math.abs(a.row - centerRow) + Math.abs(a.col - centerCol);
+                const distB = Math.abs(b.row - centerRow) + Math.abs(b.col - centerCol);
+                return distA - distB;
+            });
 
-            if (intersections.length > 0) {
-                // Score intersections - prefer ones that keep grid compact
-                const bounds = crossword.getBounds();
-                const centerRow = (bounds.minRow + bounds.maxRow) / 2;
-                const centerCol = (bounds.minCol + bounds.maxCol) / 2;
+            crossword.place(entry.answer, intersections[0].row, intersections[0].col,
+                intersections[0].direction, entry.clue, ++placedCount);
+        } else {
+            unplaced.push(entry);
+        }
+    }
 
-                // Sort by distance from current center (closer is better)
-                intersections.sort((a, b) => {
-                    const distA = Math.abs(a.row - centerRow) + Math.abs(a.col - centerCol);
-                    const distB = Math.abs(b.row - centerRow) + Math.abs(b.col - centerCol);
-                    return distA - distB;
-                });
+    // Second pass: retry unplaced (grid has grown, might find intersections now)
+    const stillUnplaced = [];
+    for (const entry of unplaced) {
+        if (crossword.placedWords.some(w => w.answer === entry.answer)) continue;
 
-                const best = intersections[0];
-                crossword.place(entry.answer, best.row, best.col, best.direction, entry.clue, ++placedCount);
+        const intersections = crossword.findIntersections(entry.answer);
+        if (intersections.length > 0) {
+            const bounds = crossword.getBounds();
+            const centerRow = (bounds.minRow + bounds.maxRow) / 2;
+            const centerCol = (bounds.minCol + bounds.maxCol) / 2;
+
+            intersections.sort((a, b) => {
+                const distA = Math.abs(a.row - centerRow) + Math.abs(a.col - centerCol);
+                const distB = Math.abs(b.row - centerRow) + Math.abs(b.col - centerCol);
+                return distA - distB;
+            });
+
+            crossword.place(entry.answer, intersections[0].row, intersections[0].col,
+                intersections[0].direction, entry.clue, ++placedCount);
+        } else {
+            stillUnplaced.push(entry);
+        }
+    }
+
+    // Third pass: force-place remaining words adjacent to grid (not overlapping)
+    for (const entry of stillUnplaced) {
+        if (crossword.placedWords.some(w => w.answer === entry.answer)) continue;
+
+        const bounds = crossword.getBounds();
+
+        // Try to place below the current grid
+        const tryRow = bounds.maxRow + 2;
+        const tryCol = bounds.minCol;
+
+        if (crossword.canPlace(entry.answer, tryRow, tryCol, 'across')) {
+            crossword.place(entry.answer, tryRow, tryCol, 'across', entry.clue, ++placedCount);
+        } else {
+            // Try right of grid
+            const tryRow2 = bounds.minRow;
+            const tryCol2 = bounds.maxCol + 2;
+
+            if (crossword.canPlace(entry.answer, tryRow2, tryCol2, 'down')) {
+                crossword.place(entry.answer, tryRow2, tryCol2, 'down', entry.clue, ++placedCount);
             }
         }
     }
@@ -380,7 +423,7 @@ function generateCrosswordLayout(entries) {
         throw new Error('Could not place enough words in crossword');
     }
 
-    console.log(`✅ Placed ${crossword.placedWords.length} words`);
+    console.log(`✅ Placed ${crossword.placedWords.length}/${entries.length} words`);
     return crossword.toOutput();
 }
 
