@@ -129,12 +129,25 @@ async function generatePuzzle() {
             })
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to generate puzzle');
+        // Safe JSON parsing
+        let data;
+        const text = await response.text();
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError, 'Response:', text);
+            throw new Error('Server returned invalid response. Please try again.');
         }
 
-        currentPuzzle = await response.json();
+        if (!response.ok) {
+            throw new Error(data?.error || `Server error (${response.status})`);
+        }
+
+        if (!data) {
+            throw new Error('Empty response from server. Please try again.');
+        }
+
+        currentPuzzle = data;
         renderPuzzle();
         updateStats();
         puzzleSection.hidden = false;
