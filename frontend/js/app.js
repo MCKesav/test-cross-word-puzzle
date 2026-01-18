@@ -132,19 +132,26 @@ async function generatePuzzle() {
         // Safe JSON parsing
         let data;
         const text = await response.text();
+
+        if (!text || text.trim() === '') {
+            throw new Error('Server returned empty response. Please try again.');
+        }
+
         try {
-            data = text ? JSON.parse(text) : null;
+            data = JSON.parse(text);
         } catch (parseError) {
-            console.error('JSON parse error:', parseError, 'Response:', text);
+            console.error('JSON parse error:', parseError, 'Response:', text.substring(0, 200));
             throw new Error('Server returned invalid response. Please try again.');
         }
 
-        if (!response.ok) {
-            throw new Error(data?.error || `Server error (${response.status})`);
+        // Check for error in response (new API format)
+        if (data.ok === false || data.error) {
+            const errorMsg = data.error?.message || data.error || 'Failed to generate puzzle';
+            throw new Error(errorMsg);
         }
 
-        if (!data) {
-            throw new Error('Empty response from server. Please try again.');
+        if (!data.grid || !data.clues) {
+            throw new Error('Invalid puzzle data received. Please try again.');
         }
 
         currentPuzzle = data;
@@ -154,6 +161,7 @@ async function generatePuzzle() {
         puzzleSection.scrollIntoView({ behavior: 'smooth' });
 
     } catch (error) {
+        console.error('Generate error:', error);
         showError(error.message);
     } finally {
         setLoading(false);
