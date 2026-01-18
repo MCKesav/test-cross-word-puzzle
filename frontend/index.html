@@ -63,6 +63,7 @@
     </section>
 
     <section id="puzzleSection" class="puzzle-section" hidden>
+      <!-- Header Bar -->
       <div class="puzzle-header">
         <div class="puzzle-title-row">
           <h2 id="puzzleTitle">Puzzle Title</h2>
@@ -79,26 +80,39 @@
         </div>
       </div>
 
-      <div class="puzzle-container">
-        <div id="crosswordGrid" class="crossword-grid"></div>
-        <div class="clues-container">
-          <div class="clues-column">
-            <h3>Across</h3>
-            <ul id="acrossClues" class="clue-list"></ul>
-          </div>
-          <div class="clues-column">
-            <h3>Down</h3>
-            <ul id="downClues" class="clue-list"></ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Hint Display -->
+      <!-- Hint Display Banner -->
       <div id="hintDisplay" class="hint-display" hidden>
         <div class="hint-content">
           <span class="hint-icon">💡</span>
           <span id="hintText" class="hint-text"></span>
           <button id="closeHint" class="hint-close">×</button>
+        </div>
+      </div>
+
+      <!-- Main 3-Panel Flexbox Layout -->
+      <div class="puzzle-layout">
+        <!-- Panel 1: Crossword Grid -->
+        <div class="panel grid-panel">
+          <div class="panel-header">Crossword</div>
+          <div class="panel-content grid-content">
+            <div id="crosswordGrid" class="crossword-grid"></div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Across Clues -->
+        <div class="panel clues-panel">
+          <div class="panel-header">Across</div>
+          <div class="panel-content clues-content">
+            <ul id="acrossClues" class="clue-list"></ul>
+          </div>
+        </div>
+
+        <!-- Panel 3: Down Clues -->
+        <div class="panel clues-panel">
+          <div class="panel-header">Down</div>
+          <div class="panel-content clues-content">
+            <ul id="downClues" class="clue-list"></ul>
+          </div>
         </div>
       </div>
     </section>
