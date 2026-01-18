@@ -1,0 +1,9 @@
+{
+    "name": "crossword-puzzle-generator",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "bytez.js": "^3.0.0"
+    }
+}
