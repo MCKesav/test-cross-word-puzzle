@@ -373,6 +373,32 @@ body {
   border-radius: 1px;
 }
 
+/* Edge handles - more visible at outer edges */
+.edge-handle {
+  width: 8px;
+  background: linear-gradient(to right, var(--primary), var(--border));
+  border-radius: 4px;
+}
+
+.edge-handle[data-edge="left"] {
+  background: linear-gradient(to left, var(--border), transparent);
+}
+
+.edge-handle[data-edge="right"] {
+  background: linear-gradient(to right, var(--border), transparent);
+}
+
+.edge-handle:hover {
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+.edge-handle::before {
+  height: 50px;
+  width: 3px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
 /* Prevent text selection while resizing */
 .resizing {
   user-select: none;
