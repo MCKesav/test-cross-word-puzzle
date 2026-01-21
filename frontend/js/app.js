@@ -539,18 +539,35 @@ function setupResizeHandles() {
         let rightPanel = null;
         let leftWidth = 0;
         let rightWidth = 0;
+        let isEdge = handle.dataset.edge;
 
         handle.addEventListener('mousedown', (e) => {
             isResizing = true;
             startX = e.clientX;
 
-            // Get adjacent panels
-            leftPanel = handle.previousElementSibling;
-            rightPanel = handle.nextElementSibling;
+            if (isEdge === 'left') {
+                // Left edge - only resize right panel (grid panel)
+                leftPanel = null;
+                rightPanel = handle.nextElementSibling;
+                if (rightPanel) {
+                    rightWidth = rightPanel.getBoundingClientRect().width;
+                }
+            } else if (isEdge === 'right') {
+                // Right edge - only resize left panel (down panel)
+                leftPanel = handle.previousElementSibling;
+                rightPanel = null;
+                if (leftPanel) {
+                    leftWidth = leftPanel.getBoundingClientRect().width;
+                }
+            } else {
+                // Middle handles - resize both adjacent panels
+                leftPanel = handle.previousElementSibling;
+                rightPanel = handle.nextElementSibling;
 
-            if (leftPanel && rightPanel) {
-                leftWidth = leftPanel.getBoundingClientRect().width;
-                rightWidth = rightPanel.getBoundingClientRect().width;
+                if (leftPanel && rightPanel) {
+                    leftWidth = leftPanel.getBoundingClientRect().width;
+                    rightWidth = rightPanel.getBoundingClientRect().width;
+                }
             }
 
             document.body.classList.add('resizing');
@@ -558,14 +575,26 @@ function setupResizeHandles() {
         });
 
         document.addEventListener('mousemove', (e) => {
-            if (!isResizing || !leftPanel || !rightPanel) return;
+            if (!isResizing) return;
 
             const dx = e.clientX - startX;
-            const newLeftWidth = Math.max(150, leftWidth + dx);
-            const newRightWidth = Math.max(150, rightWidth - dx);
 
-            leftPanel.style.flex = `0 0 ${newLeftWidth}px`;
-            rightPanel.style.flex = `0 0 ${newRightWidth}px`;
+            if (isEdge === 'left' && rightPanel) {
+                // Left edge - expand/shrink right panel
+                const newWidth = Math.max(200, rightWidth - dx);
+                rightPanel.style.flex = `0 0 ${newWidth}px`;
+            } else if (isEdge === 'right' && leftPanel) {
+                // Right edge - expand/shrink left panel
+                const newWidth = Math.max(150, leftWidth + dx);
+                leftPanel.style.flex = `0 0 ${newWidth}px`;
+            } else if (leftPanel && rightPanel) {
+                // Middle handle - resize both
+                const newLeftWidth = Math.max(150, leftWidth + dx);
+                const newRightWidth = Math.max(150, rightWidth - dx);
+
+                leftPanel.style.flex = `0 0 ${newLeftWidth}px`;
+                rightPanel.style.flex = `0 0 ${newRightWidth}px`;
+            }
         });
 
         document.addEventListener('mouseup', () => {

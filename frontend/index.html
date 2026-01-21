@@ -91,6 +91,9 @@
 
       <!-- Main 3-Panel Flexbox Layout with Resizable Dividers -->
       <div class="puzzle-layout" id="puzzleLayout">
+        <!-- Left Edge Resize Handle -->
+        <div class="resize-handle edge-handle" data-resize="left-edge" data-edge="left"></div>
+
         <!-- Panel 1: Crossword Grid -->
         <div class="panel grid-panel" id="gridPanel">
           <div class="panel-header">Crossword</div>
@@ -120,6 +123,9 @@
             <ul id="downClues" class="clue-list"></ul>
           </div>
         </div>
+
+        <!-- Right Edge Resize Handle -->
+        <div class="resize-handle edge-handle" data-resize="right-edge" data-edge="right"></div>
       </div>
     </section>
 
