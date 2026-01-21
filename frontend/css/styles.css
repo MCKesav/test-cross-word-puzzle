@@ -21,7 +21,8 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+  background: var(--bg-dark);
+  /* Fallback */
   color: var(--text-primary);
   min-height: 100vh;
   padding: 2rem;
