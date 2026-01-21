@@ -241,17 +241,17 @@ body {
   min-width: 0;
 }
 
-/* Grid Panel - Expands to fit content */
+/* Grid Panel - Takes remaining space after clues */
 .grid-panel {
   flex: 1 1 auto;
-  min-width: 300px;
+  min-width: 280px;
+  max-width: 55%;
 }
 
-/* Clues Panels - Share remaining space equally */
+/* Clues Panels - Fixed width for readable text */
 .clues-panel {
-  flex: 0 0 180px;
-  min-width: 160px;
-  max-width: 220px;
+  flex: 1 1 200px;
+  min-width: 180px;
 }
 
 /* Panel Header */
