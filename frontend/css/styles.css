@@ -332,6 +332,51 @@ body {
   .grid-panel {
     max-height: none;
   }
+
+  .resize-handle {
+    display: none;
+  }
+}
+
+/* ========== RESIZE HANDLES ========== */
+.resize-handle {
+  width: 6px;
+  background: var(--border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  border-radius: 3px;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.resize-handle:hover {
+  background: var(--primary);
+}
+
+.resize-handle:active {
+  background: var(--primary);
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 1px;
+}
+
+/* Prevent text selection while resizing */
+.resizing {
+  user-select: none;
+  cursor: col-resize !important;
+}
+
+.resizing * {
+  cursor: col-resize !important;
 }
 
 /* ========== CROSSWORD GRID ========== */

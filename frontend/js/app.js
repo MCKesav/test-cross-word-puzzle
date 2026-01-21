@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSuggestedTopics();
     setupEventListeners();
     setupDifficultySelector();
+    setupResizeHandles();
 });
 
 function setupEventListeners() {
@@ -525,4 +526,55 @@ function showError(message) {
 
 function hideError() {
     errorMessage.hidden = true;
+}
+
+// ========== RESIZABLE PANELS ==========
+function setupResizeHandles() {
+    const handles = document.querySelectorAll('.resize-handle');
+
+    handles.forEach(handle => {
+        let isResizing = false;
+        let startX = 0;
+        let leftPanel = null;
+        let rightPanel = null;
+        let leftWidth = 0;
+        let rightWidth = 0;
+
+        handle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+
+            // Get adjacent panels
+            leftPanel = handle.previousElementSibling;
+            rightPanel = handle.nextElementSibling;
+
+            if (leftPanel && rightPanel) {
+                leftWidth = leftPanel.getBoundingClientRect().width;
+                rightWidth = rightPanel.getBoundingClientRect().width;
+            }
+
+            document.body.classList.add('resizing');
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing || !leftPanel || !rightPanel) return;
+
+            const dx = e.clientX - startX;
+            const newLeftWidth = Math.max(150, leftWidth + dx);
+            const newRightWidth = Math.max(150, rightWidth - dx);
+
+            leftPanel.style.flex = `0 0 ${newLeftWidth}px`;
+            rightPanel.style.flex = `0 0 ${newRightWidth}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.classList.remove('resizing');
+                leftPanel = null;
+                rightPanel = null;
+            }
+        });
+    });
 }

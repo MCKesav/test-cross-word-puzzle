@@ -89,26 +89,32 @@
         </div>
       </div>
 
-      <!-- Main 3-Panel Flexbox Layout -->
-      <div class="puzzle-layout">
+      <!-- Main 3-Panel Flexbox Layout with Resizable Dividers -->
+      <div class="puzzle-layout" id="puzzleLayout">
         <!-- Panel 1: Crossword Grid -->
-        <div class="panel grid-panel">
+        <div class="panel grid-panel" id="gridPanel">
           <div class="panel-header">Crossword</div>
           <div class="panel-content grid-content">
             <div id="crosswordGrid" class="crossword-grid"></div>
           </div>
         </div>
 
+        <!-- Resize Handle 1 -->
+        <div class="resize-handle" data-resize="grid-across"></div>
+
         <!-- Panel 2: Across Clues -->
-        <div class="panel clues-panel">
+        <div class="panel clues-panel" id="acrossPanel">
           <div class="panel-header">Across</div>
           <div class="panel-content clues-content">
             <ul id="acrossClues" class="clue-list"></ul>
           </div>
         </div>
 
+        <!-- Resize Handle 2 -->
+        <div class="resize-handle" data-resize="across-down"></div>
+
         <!-- Panel 3: Down Clues -->
-        <div class="panel clues-panel">
+        <div class="panel clues-panel" id="downPanel">
           <div class="panel-header">Down</div>
           <div class="panel-content clues-content">
             <ul id="downClues" class="clue-list"></ul>
