@@ -224,7 +224,7 @@ body {
 /* ========== 3-PANEL FLEXBOX LAYOUT ========== */
 .puzzle-layout {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   min-height: 450px;
   max-height: calc(100vh - 280px);
   overflow: hidden;
@@ -239,28 +239,28 @@ body {
   border: 1px solid var(--border);
   overflow: hidden;
   min-width: 0;
-  /* Allows flex shrink */
 }
 
-/* Grid Panel - Takes available space but doesn't grow too much */
+/* Grid Panel - Expands to fit content */
 .grid-panel {
-  flex: 0 0 auto;
-  max-width: 50%;
+  flex: 1 1 auto;
+  min-width: 300px;
 }
 
 /* Clues Panels - Share remaining space equally */
 .clues-panel {
-  flex: 1 1 0;
-  min-width: 200px;
+  flex: 0 0 180px;
+  min-width: 160px;
+  max-width: 220px;
 }
 
 /* Panel Header */
 .panel-header {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: rgba(79, 70, 229, 0.15);
   color: var(--primary);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border);
@@ -272,15 +272,16 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
-/* Grid Content - Center the grid */
+/* Grid Content - Fill the panel */
 .grid-content {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 1rem;
+  padding: 0.5rem;
+  overflow: auto;
 }
 
 /* Clues Content - List styling */
